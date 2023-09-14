@@ -31,7 +31,14 @@ import os
 import sys
 import unittest
 
-Gene = collections.namedtuple("Gene", ("id", "name", "foldcount", "p_value"))
+Gene = collections.namedtuple("Gene", ("id", "iso", "foldcount", "p_value"))
+
+
+def sanitize_id(ident):
+    id_fields = ident.split("-")
+    if id_fields[0] == "tRNA":
+        id_fields = id_fields[1:]
+    return "-".join(id_fields[:3])
 
 
 def load_file(path):
@@ -47,7 +54,10 @@ def load_file(path):
         next(reader)
         for l in reader:
             try:
-                g = Gene(*l[0 : len(Gene._fields)])
+                fields = l[0 : len(Gene._fields)]
+                fields[0] = sanitize_id(fields[0])
+
+                g = Gene(*fields)
                 genes[g.id] = g
             except TypeError:
                 skipped += 1
@@ -113,10 +123,6 @@ class DatasetCollection(object):
         self.gene_names = {}
 
     def add(self, dataset):
-        for g in dataset.genes.values():
-            if g.name:
-                self.gene_names.setdefault(g.id, g.name)
-
         self.datasets.add(dataset)
 
     def slices(self):
@@ -136,8 +142,8 @@ class DatasetCollection(object):
 
 class TestCalc(unittest.TestCase):
     def test_calc(self):
-        A, _ = load_file(os.path.join("test", "1", "A.csv"))
-        B, _ = load_file(os.path.join("test", "1", "B.csv"))
+        A, _ = load_file(os.path.join("test", "2", "A.csv"))
+        B, _ = load_file(os.path.join("test", "2", "B.csv"))
 
         collection = DatasetCollection()
         collection.add(Dataset(A, "A"))
@@ -148,9 +154,32 @@ class TestCalc(unittest.TestCase):
         self.assertEqual(
             values,
             {
-                (("Alpha", "", "B-Alpha-fc", "B-Alpha-p"),),
-                (("Delta", "delta", "A-Delta-fc", "A-Delta-p"),),
-                (("Beta", "beta", "A-Beta-fc", "B-Beta-fc", "A-Beta-p", "B-Beta-p"),),
+                (
+                    (
+                        "Alpha-ABC-1",
+                        "",
+                        "B-Alpha-fc",
+                        "B-Alpha-p",
+                    ),
+                ),
+                (
+                    (
+                        "Delta-ABC-1",
+                        "",
+                        "A-Delta-fc",
+                        "A-Delta-p",
+                    ),
+                ),
+                (
+                    (
+                        "Beta-DEF-2",
+                        "",
+                        "A-Beta-fc",
+                        "B-Beta-fc",
+                        "A-Beta-p",
+                        "B-Beta-p",
+                    ),
+                ),
             },
         )
 

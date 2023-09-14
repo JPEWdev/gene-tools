@@ -22,4 +22,4 @@
 
 THIS_DIR="$(dirname "$0")"
 cd $THIS_DIR
-python3 -m unittest "$@" gcompare.py
+python3 -m unittest "$@" gcompare.py gcompare2.py
